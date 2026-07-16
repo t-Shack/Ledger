@@ -187,7 +187,12 @@ async def create_account(
         await session.commit()
     except IntegrityError as e:
         await session.rollback()
-        raise ValidationError(f"an account named '{body.name}' already exists") from e
+        sqlstate = getattr(getattr(e, "orig", None), "sqlstate", None)
+        if sqlstate == "23505":  # unique_violation
+            raise ValidationError(f"an account named '{body.name}' already exists") from e
+        if sqlstate == "23503":  # foreign_key_violation
+            raise ValidationError(f"user {user_id} does not exist") from e
+        raise AppError("could not create account") from e
     except Exception as e:
         await session.rollback()
         raise AppError("could not create account") from e
@@ -356,7 +361,12 @@ async def create_category(
         await session.commit()
     except IntegrityError as e:
         await session.rollback()
-        raise ValidationError(f"a category named '{body.name}' already exists") from e
+        sqlstate = getattr(getattr(e, "orig", None), "sqlstate", None)
+        if sqlstate == "23505":  # unique_violation
+            raise ValidationError(f"a category named '{body.name}' already exists") from e
+        if sqlstate == "23503":  # foreign_key_violation
+            raise ValidationError(f"user {user_id} does not exist") from e
+        raise AppError("could not create category") from e
     except Exception as e:
         await session.rollback()
         raise AppError("could not create category") from e
