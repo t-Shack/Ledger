@@ -1,15 +1,41 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition, useEffect } from "react";
 import { uploadStatement, type UploadActionResult } from "./actions";
 import { ALLOWED_EXTENSIONS, validateStatementFile, type Account } from "@/lib/schemas";
+import { getAccounts } from "@/lib/accounts";
 
-export function UploadForm({ accounts }: { accounts: Account[] }) {
-  const [accountId, setAccountId] = useState(accounts[0]?.id ?? "");
+export function UploadForm({ accounts: initialAccounts }: { accounts: Account[] }) {
+  const [accounts, setAccounts] = useState(initialAccounts);
+  const [accountId, setAccountId] = useState(initialAccounts[0]?.id ?? "");
   const [file, setFile] = useState<File | null>(null);
   const [clientError, setClientError] = useState<string | null>(null);
   const [result, setResult] = useState<UploadActionResult | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // Refetch accounts on mount to ensure fresh data
+  useEffect(() => {
+    const refreshAccounts = async () => {
+      try {
+        const result = await getAccounts();
+        if (!result.ok) {
+          console.error("Failed to fetch accounts:", result.error);
+          return;
+        }
+        const freshAccounts = result.data;
+        setAccounts(freshAccounts);
+        if (freshAccounts.length > 0 && !accountId) {
+          const firstAccount = freshAccounts[0];
+          if (firstAccount) {
+            setAccountId(firstAccount.id);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to refresh accounts:", error);
+      }
+    };
+    refreshAccounts();
+  }, [accountId]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   function handleFileChange(candidate: File | null) {

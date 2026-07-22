@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { createAccount, setAccountTracked } from "./actions";
 import { ACCOUNT_PURPOSES, type Account } from "@/lib/schemas";
+import { getAccounts } from "@/lib/accounts";
 
 type Purpose = (typeof ACCOUNT_PURPOSES)[number];
 
@@ -13,6 +14,23 @@ export function AccountsSection({ accounts: initial }: { accounts: Account[] }) 
   const [isTracked, setIsTracked] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // Refetch accounts on mount to ensure fresh data
+  useEffect(() => {
+    const refreshAccounts = async () => {
+      try {
+        const result = await getAccounts();
+        if (!result.ok) {
+          console.error("Failed to fetch accounts:", result.error);
+          return;
+        }
+        setAccounts(result.data);
+      } catch (error) {
+        console.error("Failed to refresh accounts:", error);
+      }
+    };
+    refreshAccounts();
+  }, []);
 
   function handleCreate(e: React.FormEvent) {
     e.preventDefault();

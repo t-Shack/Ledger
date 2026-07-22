@@ -17,6 +17,7 @@ from decimal import Decimal
 
 import anthropic
 from fastapi import Depends, FastAPI, File, Header, HTTPException, Query, UploadFile, status
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -53,6 +54,15 @@ from .statement_parser import StatementParseError, parse_statement
 from .utils import month_bounds
 
 app = FastAPI(title="Budget Tracker API")
+
+# Enable CORS for local development
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 _ai_client: anthropic.AsyncAnthropic | None = None
 

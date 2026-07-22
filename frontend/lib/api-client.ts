@@ -22,10 +22,10 @@ export async function apiFetch<T>(path: string, schema: z.ZodType<T>, init: Requ
   let baseUrl: string;
   let userId: string;
   try {
-    baseUrl = requireEnv("BACKEND_URL", process.env.BACKEND_URL);
+    baseUrl = requireEnv("NEXT_PUBLIC_BACKEND_URL", process.env.NEXT_PUBLIC_BACKEND_URL);
     // TEMP: stands in for real auth until session/JWT auth is designed.
     // Must match api.py's get_current_user_id stub.
-    userId = requireEnv("STUB_USER_ID", process.env.STUB_USER_ID);
+    userId = requireEnv("NEXT_PUBLIC_STUB_USER_ID", process.env.NEXT_PUBLIC_STUB_USER_ID);
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "server is misconfigured" };
   }

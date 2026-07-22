@@ -1,14 +1,50 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { correctCategory } from "./actions";
+import { getReviewQueue } from "@/lib/transactions";
 import type { Category, Transaction } from "@/lib/schemas";
 
 export function ReviewList({ transactions, categories }: { transactions: Transaction[]; categories: Category[] }) {
   const [items, setItems] = useState(transactions);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Refetch review queue on mount to get any new transactions
+  useEffect(() => {
+    const refreshTransactions = async () => {
+      try {
+        const result = await getReviewQueue();
+        if (result.ok) {
+          setItems(result.data);
+        } else {
+          console.error("Failed to fetch review queue:", result.error);
+        }
+      } catch (error) {
+        console.error("Failed to refresh transactions:", error);
+      }
+    };
+    refreshTransactions();
+  }, []);
 
   function handleResolved(id: string) {
-    setItems((prev) => prev.filter((t) => t.id !== id));
+    // Refetch the entire list after confirming, rather than just removing from state
+    // This ensures we always have the latest data from the database
+    setIsRefreshing(true);
+    const refreshTransactions = async () => {
+      try {
+        const result = await getReviewQueue();
+        if (result.ok) {
+          setItems(result.data);
+        } else {
+          console.error("Failed to fetch review queue:", result.error);
+        }
+      } catch (error) {
+        console.error("Failed to refresh transactions:", error);
+      } finally {
+        setIsRefreshing(false);
+      }
+    };
+    refreshTransactions();
   }
 
   if (items.length === 0) {
@@ -18,7 +54,7 @@ export function ReviewList({ transactions, categories }: { transactions: Transac
   return (
     <ul className="mt-8 divide-y divide-border">
       {items.map((t) => (
-        <ReviewRow key={t.id} transaction={t} categories={categories} onResolved={handleResolved} />
+        <ReviewRow key={t.id} transaction={t} categories={categories} onResolved={handleResolved} isRefreshing={isRefreshing} />
       ))}
     </ul>
   );
@@ -28,10 +64,12 @@ function ReviewRow({
   transaction,
   categories,
   onResolved,
+  isRefreshing,
 }: {
   transaction: Transaction;
   categories: Category[];
   onResolved: (id: string) => void;
+  isRefreshing: boolean;
 }) {
   const [categoryId, setCategoryId] = useState(transaction.category_id ?? "");
   const [error, setError] = useState<string | null>(null);
@@ -94,10 +132,10 @@ function ReviewRow({
         <button
           type="button"
           onClick={handleConfirm}
-          disabled={isPending}
+          disabled={isPending || isRefreshing}
           className="whitespace-nowrap rounded-md bg-accent-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-accent-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isPending ? "Saving…" : "Confirm"}
+          {isPending ? "Saving…" : isRefreshing ? "Updating…" : "Confirm"}
         </button>
       </div>
       {error && (

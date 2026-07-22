@@ -4,5 +4,6 @@ node_modules/
 *.log
 __pycache__/
 *.pyc
-.env.local
-.env.*.local
+*.env
+*.env.local
+*.env.*.local
